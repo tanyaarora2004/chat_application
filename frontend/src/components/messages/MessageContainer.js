@@ -17,9 +17,14 @@ const Avatar = ({ fullName }) => {
 
 
 const MessageContainer = () => {
-    const { selectedConversation, setSelectedConversation } = useConversation();
+    // 1. Get the typingUsers Set from the store instead of the old 'isTyping'
+    const { selectedConversation, setSelectedConversation, typingUsers } = useConversation();
+
+    // 2. Derive the typing status for the currently selected user
+    const isCurrentlyTyping = selectedConversation ? typingUsers.has(selectedConversation._id) : false;
 
     useEffect(() => {
+        // Cleanup function to deselect conversation on unmount
         return () => setSelectedConversation(null);
     }, [setSelectedConversation]);
 
@@ -31,9 +36,13 @@ const MessageContainer = () => {
                 <>
                     <div className="chat-header">
                         <Avatar fullName={selectedConversation.fullName} />
-                        <span className="chat-user-name">
-                            {selectedConversation.fullName}
-                        </span>
+                        <div className="chat-user-details">
+                            <span className="chat-user-name">
+                                {selectedConversation.fullName}
+                            </span>
+                            {/* 3. Use the new derived boolean to show the indicator */}
+                            {isCurrentlyTyping && <span className="typing-indicator">Typing...</span>}
+                        </div>
                     </div>
                     <Messages />
                     <MessageInput />
