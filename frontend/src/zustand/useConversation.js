@@ -28,6 +28,13 @@ const useConversation = create((set) => ({
     updateMessage: (updatedMessage) =>
         set((state) => {
             console.log('🔄 Updating message:', updatedMessage._id, 'status:', updatedMessage.status);
+            if (updatedMessage.deletedForEveryone || updatedMessage.deletedBy) {
+                console.log('🗑️ Message deletion update:', {
+                    id: updatedMessage._id,
+                    deletedForEveryone: updatedMessage.deletedForEveryone,
+                    deletedBy: updatedMessage.deletedBy
+                });
+            }
             const newMessages = [...state.messages.map((msg) =>
                 msg._id === updatedMessage._id ? { ...updatedMessage } : msg
             )];

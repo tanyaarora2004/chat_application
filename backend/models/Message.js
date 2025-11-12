@@ -1,3 +1,4 @@
+// backend/models/Message.js
 import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema(
@@ -16,13 +17,24 @@ const messageSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        // --- ADD THIS ---
+        // existing status field
         status: {
             type: String,
             enum: ["sent", "delivered", "seen"],
             default: "sent",
         },
-        // --- END ADD ---
+        // --- NEW fields for deletion support ---
+        deletedForEveryone: {
+            type: Boolean,
+            default: false,
+        },
+        deletedBy: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
+        // --- END NEW ---
     },
     { timestamps: true } // createdAt, updatedAt fields
 );

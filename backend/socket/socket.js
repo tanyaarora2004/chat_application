@@ -1,4 +1,4 @@
-// socket/socket.js
+// backend/socket/socket.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -63,6 +63,13 @@ io.on('connection', (socket) => {
     }
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
+    // Allow joining conversation rooms (optional)
+    socket.on('joinConversation', (conversationId) => {
+        if (conversationId) {
+            socket.join(conversationId);
+        }
+    });
 
     // Typing indicator logic
     socket.on("typing", ({ receiverId }) => {

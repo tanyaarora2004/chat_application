@@ -1,3 +1,4 @@
+// src/context/SocketContext.js
 import { createContext, useState, useEffect, useContext } from "react";
 import { useAuthContext } from "./AuthContext";
 import io from "socket.io-client";
@@ -42,6 +43,16 @@ export const SocketContextProvider = ({ children }) => {
             // ✅ Listen for seen status updates
             newSocket.on("messageSeen", ({ otherUserId }) => {
                 setAllMessagesAsSeenBy(otherUserId);
+            });
+
+            // ✅ Listen for generic status update (if your server emits 'messageStatusUpdate')
+            newSocket.on("messageStatusUpdate", (updatedMessage) => {
+                updateMessage(updatedMessage);
+            });
+
+            // ✅ NEW: Listen for messageDeleted events
+            newSocket.on("messageDeleted", (updatedMessage) => {
+                updateMessage(updatedMessage);
             });
 
             // ✅ Cleanup when component unmounts
