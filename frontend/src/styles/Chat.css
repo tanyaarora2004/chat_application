@@ -332,8 +332,16 @@
     font-size: 11px;
     margin-top: 4px;
     opacity: 0.7;
+    display: flex; /* <-- Add this */
+    align-items: center; /* <-- Add this */
+    gap: 4px; /* <-- Add this */
 }
 
+.message-receipt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 .message-time.from-me {
     color: #6c757d;
 }

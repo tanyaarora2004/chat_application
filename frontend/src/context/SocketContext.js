@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { useAuthContext } from "./AuthContext";
 import io from "socket.io-client";
+import useConversation from "../zustand/useConversation";
 
 const SocketContext = createContext();
 
@@ -12,25 +13,42 @@ export const SocketContextProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const { authUser } = useAuthContext();
+    const { setMessages, updateMessage, setAllMessagesAsSeenBy } = useConversation();
 
     useEffect(() => {
         if (authUser) {
-            // Establish connection to the backend socket server
-            const socket = io("http://localhost:5000", {
-                query: {
-                    userId: authUser._id, // Send user ID to backend for mapping
-                },
+            // ✅ Connect to your backend socket server
+            const newSocket = io("http://localhost:5000", {
+                query: { userId: authUser._id },
             });
 
-            setSocket(socket);
+            setSocket(newSocket);
 
-            // Listen for the "getOnlineUsers" event from the server
-            socket.on("getOnlineUsers", (users) => {
+            // ✅ Get online users
+            newSocket.on("getOnlineUsers", (users) => {
                 setOnlineUsers(users);
             });
 
-            // Cleanup function to close the socket when the component unmounts
-            return () => socket.close();
+            // ✅ Listen for new incoming messages
+            newSocket.on("newMessage", (message) => {
+                setMessages((prevMessages) => [...prevMessages, message]);
+            });
+
+            // ✅ Listen for delivery status updates
+            newSocket.on("messageDelivered", (updatedMessage) => {
+                updateMessage(updatedMessage);
+            });
+
+            // ✅ Listen for seen status updates
+            newSocket.on("messageSeen", ({ otherUserId }) => {
+                setAllMessagesAsSeenBy(otherUserId);
+            });
+
+            // ✅ Cleanup when component unmounts
+            return () => {
+                newSocket.close();
+                setSocket(null);
+            };
         } else {
             if (socket) {
                 socket.close();
@@ -39,5 +57,9 @@ export const SocketContextProvider = ({ children }) => {
         }
     }, [authUser]);
 
-    return <SocketContext.Provider value={{ socket, onlineUsers }}>{children}</SocketContext.Provider>;
+    return (
+        <SocketContext.Provider value={{ socket, onlineUsers }}>
+            {children}
+        </SocketContext.Provider>
+    );
 };

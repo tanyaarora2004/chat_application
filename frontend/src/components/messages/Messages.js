@@ -3,7 +3,9 @@ import Message from './Message.js';
 import useGetMessages from '../../hooks/useGetMessages.js';
 import useListenMessages from '../../hooks/useListenMessages.js';
 import '../../styles/Chat.css';
-import { formatDateSeparator } from '../../utils/formatDate.js'; // --- CHANGE 1: Import the helper ---
+import { formatDateSeparator } from '../../utils/formatDate.js';
+import useConversation from '../../zustand/useConversation.js';
+import apiClient from '../../api/api.js';
 
 const MessageSkeleton = () => {
     return (
@@ -16,17 +18,51 @@ const MessageSkeleton = () => {
 };
 
 const Messages = () => {
-    const { messages, loading } = useGetMessages();
-    useListenMessages();
+    const { loading } = useGetMessages();
+    const { selectedConversation, messages } = useConversation(); // Direct subscription to store
     const lastMessageRef = useRef();
 
+    // Listen to socket events for new messages or seen updates
+    useListenMessages();
+
+    // Auto scroll to the last message whenever messages update
     useEffect(() => {
         setTimeout(() => {
             lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
     }, [messages]);
 
-    // --- CHANGE 2: Add a variable to track the last date ---
+    // --- MARK MESSAGES AS SEEN WHEN VIEWED ---
+    useEffect(() => {
+        const markAsSeen = async () => {
+            if (selectedConversation && messages.length > 0) {
+                // Check if there are any unread messages from the other user
+                const hasUnread = messages.some(
+                    (msg) =>
+                        msg.senderId === selectedConversation._id &&
+                        msg.status !== "seen"
+                );
+
+                console.log("📖 Checking for unread messages from:", selectedConversation._id, "hasUnread:", hasUnread);
+
+                if (hasUnread) {
+                    try {
+                        console.log("📖 Making API call to mark messages as seen for:", selectedConversation._id);
+                        // Mark all unseen messages in this chat as seen
+                        await apiClient.post(`/messages/seen/${selectedConversation._id}`);
+                        console.log("📖 Successfully marked messages as seen");
+                        // Socket event will update other user's UI via useListenMessages
+                    } catch (error) {
+                        console.error("❌ Failed to mark messages as seen:", error);
+                    }
+                }
+            }
+        };
+
+        markAsSeen();
+    }, [messages, selectedConversation]);
+    // --- END MARK SEEN ---
+
     let lastMessageDate = null;
 
     return (
@@ -34,7 +70,6 @@ const Messages = () => {
             {loading && <MessageSkeleton />}
 
             {!loading && messages.length > 0 &&
-                // --- CHANGE 3: Update the mapping logic ---
                 messages.map((message, index) => {
                     const messageDate = new Date(message.createdAt).toDateString();
                     const showDateSeparator = messageDate !== lastMessageDate;

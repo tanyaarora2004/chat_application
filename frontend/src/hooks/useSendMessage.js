@@ -13,6 +13,9 @@ const useSendMessage = () => {
             // API call to send the message
             const res = await apiClient.post(`/messages/send/${selectedConversation._id}`, { message });
             
+            console.log('📤 Sent message response:', res.data);
+            console.log('📤 Message status from API:', res.data.status);
+            
             // Update the local messages state with the new message
             setMessages([...messages, res.data]);
         } catch (error) {
