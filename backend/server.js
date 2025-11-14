@@ -1,37 +1,66 @@
-//  Load dotenv first - THIS IS THE FIX
+// ------------------------------
+// 1️⃣ Load dotenv FIRST
+// ------------------------------
 import dotenv from 'dotenv';
-dotenv.config(); // This line MUST be first
+dotenv.config(); // MUST be first before anything else
 
-//  Core imports
+// ------------------------------
+// 2️⃣ Core imports
+// ------------------------------
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import session from 'express-session';
 import passport from 'passport';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-//  Import the configured app and server from your socket file
+// ------------------------------
+// 3️⃣ Import the app + server from socket.js
+// ------------------------------
 import { app, server } from './socket/socket.js';
 
-//  Import database and route configurations
+// ------------------------------
+// 4️⃣ DB + Routes
+// ------------------------------
 import connectToDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 
-// Passport configuration AFTER dotenv
+// Load passport configuration
 import './config/passport.js';
 
+// ------------------------------
+// 5️⃣ Fix __dirname for ES modules
+// ------------------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ------------------------------
+// 6️⃣ Port
+// ------------------------------
 const PORT = process.env.PORT || 5000;
 
-// --- Middleware ---
+// ------------------------------
+// 7️⃣ CORS (Important for audio uploads + sockets)
+// ------------------------------
 app.use(
     cors({
         origin: process.env.CLIENT_URL,
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
     })
 );
-app.use(express.json());
+
+// ------------------------------
+// 8️⃣ Middlewares
+// ------------------------------
+app.use(express.json({ limit: '50mb' }));     // Audio needs higher limit
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));  
 app.use(cookieParser());
+
 app.use(
     session({
         secret: process.env.SESSION_SECRET,
@@ -44,20 +73,41 @@ app.use(
         },
     })
 );
+
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- Routes ---
+// ------------------------------
+// 9️⃣ Static folder for audio
+// ------------------------------
+// Create uploads directory if it doesn't exist
+import fs from 'fs';
+const uploadsDir = path.join(__dirname, 'uploads', 'audio');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 Created uploads/audio directory');
+}
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ------------------------------
+// 🔟 API Routes
+// ------------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 
-// --- Test Route ---
-app.get('/', (req, res) => res.send('Server with Socket.IO is running'));
+// ------------------------------
+// 1️⃣1️⃣ Test route
+// ------------------------------
+app.get('/', (req, res) => {
+    res.send('Server + Socket.IO running successfully');
+});
 
-// --- Start Server ---
+// ------------------------------
+// 1️⃣2️⃣ Start server
+// ------------------------------
 server.listen(PORT, () => {
     connectToDB();
     console.log(`🚀 Server running on port ${PORT}`);
 });
-
