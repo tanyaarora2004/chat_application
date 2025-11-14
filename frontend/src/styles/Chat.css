@@ -668,3 +668,74 @@
 .shadow-strong {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
+
+/* ============================== */
+/* DELETE POPUP MODAL STYLES */
+/* ============================== */
+
+.delete-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-in;
+}
+
+.delete-popup {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    padding: 20px 25px;
+    width: 280px;
+    text-align: center;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.delete-popup-title {
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.delete-popup-btn {
+    display: block;
+    width: 100%;
+    margin: 6px 0;
+    padding: 10px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s ease;
+}
+
+.delete-popup-btn:hover {
+    background: linear-gradient(135deg, #0056b3, #00408a);
+}
+
+.delete-popup-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.delete-cancel-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.delete-cancel-btn:hover {
+    color: #000;
+}

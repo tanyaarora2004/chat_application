@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthContext } from '../../context/AuthContext';
 import '../../styles/Chat.css';
 import ReadReceipt from './ReadReceipt.js';
@@ -11,6 +11,8 @@ const Message = ({ message }) => {
     const { socket } = useSocketContext();
     const fromMe = message.senderId?.toString() === authUser?._id?.toString();
 
+    const [showPopup, setShowPopup] = useState(false);
+
     // Deletion state
     const iDeleted = message.deletedBy && message.deletedBy.some(id => id.toString() === authUser._id.toString());
     const isDeletedForEveryone = !!message.deletedForEveryone;
@@ -21,17 +23,14 @@ const Message = ({ message }) => {
         minute: '2-digit',
     });
 
-    // ✅ Delete message (scope = 'me' or 'everyone')
+    // ✅ Delete message
     const handleDelete = async (scope) => {
-        console.log("🗑️ Delete button clicked - scope:", scope, "messageId:", message._id);
         try {
             const response = await apiClient.delete(`/messages/${message._id}?scope=${scope}`);
-            
             console.log("✅ Delete API success:", response.data);
-            console.log("🔄 Waiting for socket event to update UI...");
+            setShowPopup(false); // close popup
         } catch (err) {
             console.error("❌ Delete API failed:", err.response?.data || err.message);
-            console.error("📋 Full error:", err);
         }
     };
 
@@ -66,25 +65,46 @@ const Message = ({ message }) => {
 
     // 🔹 Normal message
     return (
-        <div className={`message-wrapper ${fromMe ? 'from-me' : 'from-them'}`}>
-            <div className={`message-bubble ${fromMe ? 'from-me' : 'from-them'}`}>
-                {message.message}
-            </div>
-            <div className={`message-time ${fromMe ? 'from-me' : 'from-them'}`}>
-                <span>{formattedTime}</span>
-                {fromMe && (
-                    <span className="message-receipt">
-                        <ReadReceipt status={message.status} />
-                    </span>
-                )}
-                <div className="message-actions">
-                    <button className="btn-link small" onClick={() => handleDelete('me')}>Delete for me</button>
+        <>
+            <div
+                className={`message-wrapper ${fromMe ? 'from-me' : 'from-them'}`}
+                onClick={() => setShowPopup(true)}
+            >
+                <div className={`message-bubble ${fromMe ? 'from-me' : 'from-them'}`}>
+                    {message.message}
+                </div>
+                <div className={`message-time ${fromMe ? 'from-me' : 'from-them'}`}>
+                    <span>{formattedTime}</span>
                     {fromMe && (
-                        <button className="btn-link small" onClick={() => handleDelete('everyone')}>Delete for everyone</button>
+                        <span className="message-receipt">
+                            <ReadReceipt status={message.status} />
+                        </span>
                     )}
                 </div>
             </div>
-        </div>
+
+            {/* 🔹 Popup for delete options */}
+            {showPopup && (
+                <div className="delete-popup-overlay" onClick={() => setShowPopup(false)}>
+                    <div className="delete-popup" onClick={(e) => e.stopPropagation()}>
+                        <p className="delete-popup-title">Delete this message?</p>
+                        <button className="delete-popup-btn" onClick={() => handleDelete('me')}>
+                            Delete for me
+                        </button>
+                        {fromMe && (
+                            <button className="delete-popup-btn" onClick={() => handleDelete('everyone')}>
+                                Delete for everyone
+                            </button>
+                        )}
+                        <div className="delete-popup-footer">
+                            <button className="delete-cancel-btn" onClick={() => setShowPopup(false)}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 
