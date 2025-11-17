@@ -3,22 +3,22 @@ import useSendMessage from "../../hooks/useSendMessage.js";
 import "../../styles/Chat.css";
 import { useSocketContext } from "../../context/SocketContext.js";
 import useConversation from "../../zustand/useConversation.js";
-import apiClient from '../../api/api.js';
+import EmojiPicker from "emoji-picker-react";
 
 const MessageInput = () => {
     const [message, setMessage] = useState("");
     const [isRecording, setIsRecording] = useState(false);
     const [recorder, setRecorder] = useState(null);
-    const [audioBlob, setAudioBlob] = useState(null); // Store recorded audio
+    const [audioBlob, setAudioBlob] = useState(null);
+    const [file, setFile] = useState(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false); // ⭐ NEW
     const mediaChunks = useRef([]);
 
     const { loading, sendMessage } = useSendMessage();
     const { socket } = useSocketContext();
     const { selectedConversation } = useConversation();
 
-    // -------------------------------
-    // 🔹 Start Recording Audio
-    // -------------------------------
+    // --------------------- AUDIO RECORDING ---------------------
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -30,10 +30,8 @@ const MessageInput = () => {
 
             mediaRecorder.onstop = () => {
                 const recordedBlob = new Blob(mediaChunks.current, { type: "audio/webm" });
-                setAudioBlob(recordedBlob); // Store for preview
+                setAudioBlob(recordedBlob);
                 mediaChunks.current = [];
-                
-                // Stop all tracks to release microphone
                 stream.getTracks().forEach(track => track.stop());
             };
 
@@ -47,9 +45,6 @@ const MessageInput = () => {
         }
     };
 
-    // -------------------------------
-    // 🔹 Stop Recording Audio
-    // -------------------------------
     const stopRecording = () => {
         if (recorder && isRecording) {
             recorder.stop();
@@ -59,136 +54,170 @@ const MessageInput = () => {
         }
     };
 
-    // -------------------------------
-    // 🔹 Send Audio Message
-    // -------------------------------
     const sendAudioMessage = async () => {
         if (!audioBlob) return;
-        
+
         try {
             await sendMessage({ type: "voice", audioBlob });
-            setAudioBlob(null); // Clear after sending
+            setAudioBlob(null);
         } catch (error) {
             console.error("Failed to send audio message:", error);
         }
     };
 
-    // -------------------------------
-    // 🔹 Cancel Audio Message
-    // -------------------------------
     const cancelAudioMessage = () => {
         setAudioBlob(null);
     };
 
-    // -------------------------------
-    // 🔹 Handle send text message
-    // -------------------------------
+    // --------------------- FILE UPLOAD ---------------------
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
+    };
+
+    // --------------------- SEND TEXT / FILE ---------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!message.trim()) return;
+        if (!message.trim() && !file) return;
 
         if (socket) {
             socket.emit("stopTyping", { receiverId: selectedConversation._id });
         }
 
-        await sendMessage(message); // sending normal text
+        await sendMessage(message, file);
+
         setMessage("");
+        setFile(null);
+        setShowEmojiPicker(false);
     };
 
-    // -------------------------------
-    // 🔹 Typing Indicator
-    // -------------------------------
+    // --------------------- TYPING EVENTS ---------------------
     const handleTyping = (e) => {
         setMessage(e.target.value);
-
-        if (socket) {
-            socket.emit("typing", { receiverId: selectedConversation._id });
-        }
+        if (socket) socket.emit("typing", { receiverId: selectedConversation._id });
     };
 
     const handleStopTyping = () => {
-        if (socket) {
-            socket.emit("stopTyping", { receiverId: selectedConversation._id });
-        }
+        if (socket) socket.emit("stopTyping", { receiverId: selectedConversation._id });
+    };
+
+    // ⭐ ADD EMOJI TO TEXT
+    const handleEmojiClick = (emojiData) => {
+        setMessage(prev => prev + emojiData.emoji);
     };
 
     return (
         <div className="message-input-container">
+
             {audioBlob ? (
-                // Audio Preview Mode
+                // --------------------- AUDIO PREVIEW ---------------------
                 <div className="audio-preview-container">
                     <div className="audio-preview">
-                        <audio 
+                        <audio
                             controls
-                            onContextMenu={(e) => e.preventDefault()}
                             controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
                             disablePictureInPicture
-                            preload="metadata"
+                            onContextMenu={(e) => e.preventDefault()}
                         >
                             <source src={URL.createObjectURL(audioBlob)} type="audio/webm" />
-                            Your browser does not support the audio element.
                         </audio>
                     </div>
+
                     <div className="audio-preview-actions">
                         <button
                             type="button"
                             className="send-audio-button"
                             onClick={sendAudioMessage}
                             disabled={loading}
-                            title="Send audio message"
                         >
                             {loading ? "⋯" : "➤"}
                         </button>
+
                         <button
                             type="button"
                             className="cancel-audio-button"
                             onClick={cancelAudioMessage}
-                            title="Cancel audio message"
                         >
                             ✕
                         </button>
                     </div>
                 </div>
+
             ) : (
-                // Normal Message Input Mode
+                // --------------------- NORMAL CHAT INPUT ---------------------
                 <form onSubmit={handleSubmit} className="message-input-form">
-                    {/* Text Input */}
+
+                    {/* FILE PREVIEW */}
+                    {file && (
+                        <div className="file-preview">
+                            <div className="file-preview-info">
+                                <span className="file-preview-icon">📎</span>
+                                <span className="file-preview-name">{file.name}</span>
+                                <span className="file-preview-size">
+                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                                <button
+                                    type="button"
+                                    className="remove-file-button"
+                                    onClick={() => setFile(null)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ⭐ EMOJI BUTTON - LEFT SIDE */}
+                    <button
+                        type="button"
+                        className="emoji-button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    >
+                        😀
+                    </button>
+
+                    {/* ⭐ EMOJI PICKER POPUP */}
+                    {showEmojiPicker && (
+                        <div className="emoji-picker-container">
+                            <EmojiPicker onEmojiClick={handleEmojiClick} />
+                        </div>
+                    )}
+
+                    {/* TEXT INPUT */}
                     <input
                         type="text"
-                        placeholder="Type a message..."
+                        placeholder={file ? "Add a caption..." : "Type a message..."}
                         value={message}
                         onChange={handleTyping}
                         onBlur={handleStopTyping}
                         className="message-input"
                     />
 
-                    {/* 🔴 Audio Record Button */}
+                    {/* FILE UPLOAD */}
+                    <label htmlFor="file-upload" className="file-upload-label">📎</label>
+                    <input
+                        id="file-upload"
+                        type="file"
+                        className="file-upload-input"
+                        accept="image/*,video/*,application/pdf"
+                        onChange={handleFileChange}
+                    />
+
+                    {/* AUDIO RECORD */}
                     {!isRecording ? (
-                        <button
-                            type="button"
-                            className="voice-button"
-                            onClick={startRecording}
-                            title="Record voice message"
-                        >
-                            🎤
+                        <button type="button" className="voice-button" onClick={startRecording}>
+                            🎙️
                         </button>
                     ) : (
-                        <button
-                            type="button"
-                            className="recording-stop-button"
-                            onClick={stopRecording}
-                            title="Stop recording"
-                        >
+                        <button type="button" className="recording-stop-button" onClick={stopRecording}>
                             ⏹
                         </button>
                     )}
 
-                    {/* Text Send Button */}
+                    {/* SEND BUTTON */}
                     <button
                         type="submit"
-                        disabled={loading || !message.trim()}
+                        disabled={loading || (!message.trim() && !file)}
                         className="send-button"
-                        title="Send message"
                     >
                         {loading ? "⋯" : "➤"}
                     </button>

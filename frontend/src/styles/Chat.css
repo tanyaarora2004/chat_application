@@ -455,6 +455,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    order: 5;
 }
 
 .send-button:hover:not(:disabled) {
@@ -757,11 +758,12 @@
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
+    order: 4;
 }
 
 /* 🎤 Start Recording Button */
 .voice-button {
-    background: linear-gradient(135deg, #28a745, #218838);
+    background: linear-gradient(135deg, #007bff, #0056b3);
     color: white;
 }
 
@@ -922,5 +924,377 @@ audio::-webkit-media-controls-overflow-menu-list,
 .cancel-audio-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+}
+
+/* File Upload Styles */
+.file-upload-label {
+    background: linear-gradient(135deg, #007bff, #0056b3 100%);
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.file-upload-label:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.file-upload-input {
+    display: none;
+}
+
+/* File Message Styles */
+.file-message {
+    max-width: 300px;
+    margin: 5px 0;
+}
+
+.file-message.image-message {
+    max-width: 250px;
+}
+
+.chat-image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-image:hover {
+    transform: scale(1.02);
+}
+
+.chat-video {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    outline: none;
+}
+
+.document-message .file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    min-width: 200px;
+}
+
+.file-icon {
+    font-size: 24px;
+    color: #667eea;
+}
+
+.file-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.file-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    word-break: break-word;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* File text styling for receiver's side (from-them) */
+.message-bubble.from-them .file-name {
+    color: #333;
+}
+
+.file-type {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+}
+
+/* File type styling for receiver's side (from-them) */
+.message-bubble.from-them .file-type {
+    color: rgba(51, 51, 51, 0.7);
+}
+
+.file-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* .file-view-btn {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.file-view-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.file-download-btn {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.file-download-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    color: white;
+    text-decoration: none;
+} */
+
+/* File Preview in Input */
+.message-input-container {
+    position: relative;
+}
+
+.file-preview {
+    position: absolute;
+    top: -60px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 15px;
+    padding: 10px 15px;
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.file-preview-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-preview-icon {
+    font-size: 20px;
+    color: #667eea;
+}
+
+.file-preview-name {
+    font-weight: 600;
+    color: #2d3748;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-preview-size {
+    font-size: 12px;
+    color: #718096;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.remove-file-button {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-left: auto;
+}
+
+.remove-file-button:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #ff5252, #d32f2f);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================== */
+/* EMOJI PICKER STYLES */
+/* ============================== */
+
+.emoji-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(243, 243, 243, 0.8);
+    color: #8696a0;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: none;
+    backdrop-filter: blur(5px);
+}
+
+.emoji-button:hover {
+    background: rgba(233, 233, 233, 0.9);
+    transform: scale(1.05);
+}
+
+.emoji-button:active {
+    transform: scale(0.95);
+    background: rgba(213, 213, 213, 0.9);
+}
+
+.emoji-picker-container {
+    position: absolute;
+    bottom: 70px;
+    left: 20px;
+    z-index: 1000;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    animation: emojiSlideUp 0.3s ease;
+    background: white;
+    /* border: 1px solid rgba(0, 0, 0, 0.08); */
+}
+
+.emoji-picker-container .EmojiPickerReact {
+    --epr-bg-color: #ffffff;
+    --epr-category-label-bg-color: #f8f9fa;
+    --epr-search-input-bg-color: #f1f3f4;
+    --epr-picker-border-color: transparent;
+    --epr-search-border-color: #e1e5e9;
+    --epr-emoji-hover-color: rgba(0, 123, 255, 0.1);
+    border: none;
+    border-radius: 16px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.emoji-picker-container .EmojiPickerReact .epr-search-container {
+    padding: 12px 16px 8px 16px;
+}
+
+.emoji-picker-container .EmojiPickerReact .epr-search {
+    border-radius: 20px;
+    border: 1px solid #e1e5e9;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.emoji-picker-container .EmojiPickerReact .epr-category-nav {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.emoji-picker-container .EmojiPickerReact .epr-emoji-category-label {
+    font-weight: 600;
+    /* color: #65676b; */
+    font-size: 13px;
+    padding: 8px 16px 4px 16px;
+}
+
+.emoji-picker-container .EmojiPickerReact .epr-body {
+    padding: 0 8px 8px 8px;
+}
+
+@keyframes emojiSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Force light theme for emoji picker - Override dark theme */
+.emoji-picker-container .EmojiPickerReact {
+    --epr-bg-color: #ffffff !important;
+    --epr-category-label-bg-color: #f8f9fa !important;
+    --epr-search-input-bg-color: #f1f3f4 !important;
+    --epr-text-color: #333333 !important;
+    --epr-search-border-color: #e1e5e9 !important;
+    --epr-emoji-hover-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .file-message {
+        max-width: 220px;
+    }
+    
+    .document-message .file-info {
+        min-width: 180px;
+        padding: 10px;
+    }
+    
+    .file-name {
+        max-width: 120px;
+    }
+    
+    .emoji-picker-container {
+        left: 10px;
+        right: 10px;
+        width: auto;
+    }
+    
+    .emoji-button {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+    }
 }
 

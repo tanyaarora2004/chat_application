@@ -15,38 +15,48 @@ const messageSchema = new mongoose.Schema(
             required: true,
         },
 
-        // Normal text message (optional when audio is present)
+        // Normal text message
         message: {
             type: String,
         },
 
-        // ⭐ NEW: audio message URL (Cloudinary / local)
+        // ⭐ AUDIO MESSAGE SUPPORT (Your original code)
         audioUrl: {
             type: String,
             default: null,
         },
 
-        // ⭐ NEW: audio duration (optional)
         audioDuration: {
             type: Number,
             default: null,
         },
 
-        // message content type
+        // ⭐ FILE MESSAGE SUPPORT (PDF, DOCX, IMAGES, VIDEO, etc.)
+        fileUrl: {
+            type: String, 
+            default: null,
+        },
+
+        fileType: {
+            type: String, // MIME type (application/pdf, image/png, etc.)
+            default: null,
+        },
+
+        // ⭐ MESSAGE TYPE (Now supports text, audio, file)
         messageType: {
             type: String,
-            enum: ["text", "audio"],
+            enum: ["text", "audio", "file"],
             default: "text",
         },
 
-        // existing status field
+        // ⭐ STATUS
         status: {
             type: String,
             enum: ["sent", "delivered", "seen"],
             default: "sent",
         },
 
-        // --- Deletion features ---
+        // ⭐ DELETION LOGIC (Your original code)
         deletedForEveryone: {
             type: Boolean,
             default: false,
@@ -59,7 +69,7 @@ const messageSchema = new mongoose.Schema(
             },
         ],
     },
-    { timestamps: true } // createdAt, updatedAt
+    { timestamps: true }
 );
 
 const Message = mongoose.model("Message", messageSchema);

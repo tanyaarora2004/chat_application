@@ -3,18 +3,23 @@ import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import { getReceiverSocketId, io } from '../socket/socket.js';
 
-// ⭐ SEND MESSAGE (TEXT OR AUDIO)
+// ⭐ SEND MESSAGE (TEXT + AUDIO + FILE)
 export const sendMessage = async (req, res) => {
     try {
         const { message, audioUrl, audioDuration, messageType } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
-        // Validate message type
-        if (!message && !audioUrl) {
-            return res.status(400).json({ error: "Message or audio is required" });
+        // ⭐ Added from file upload logic
+        const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
+        const fileType = req.file ? req.file.mimetype : null;
+
+        // ⭐ Validate message types (text OR audio OR file)
+        if (!message && !audioUrl && !fileUrl) {
+            return res.status(400).json({ error: "Message, audio or file required" });
         }
 
+        // ⭐ Find or create conversation
         let conversation = await Conversation.findOne({
             participants: { $all: [senderId, receiverId] },
         });
@@ -25,21 +30,29 @@ export const sendMessage = async (req, res) => {
             });
         }
 
-        // ⭐ Create new message (supports text/audio)
+        // ⭐ Create new message (supports text + audio + file)
         const newMessage = new Message({
             senderId,
             receiverId,
             message: message || null,
+
+            // AUDIO
             audioUrl: audioUrl || null,
             audioDuration: audioDuration || null,
-            messageType: messageType || (audioUrl ? "audio" : "text"),
+            messageType:
+                messageType ||
+                (audioUrl ? "audio" : fileUrl ? "file" : "text"),
+
+            // FILE (added from second code)
+            fileUrl,
+            fileType,
         });
 
         conversation.messages.push(newMessage._id);
 
         await Promise.all([conversation.save(), newMessage.save()]);
 
-        // ⭐ Real-time send to receiver
+        // ⭐ Emit in real-time
         const receiverSocketId = getReceiverSocketId(receiverId);
         if (receiverSocketId) {
             io.to(receiverSocketId).emit("newMessage", newMessage);
@@ -51,7 +64,6 @@ export const sendMessage = async (req, res) => {
                 { new: true }
             );
 
-            // Notify sender
             const senderSocketId = getReceiverSocketId(senderId.toString());
             if (senderSocketId) {
                 io.to(senderSocketId).emit("messageStatusUpdate", deliveredMessage);
@@ -60,7 +72,7 @@ export const sendMessage = async (req, res) => {
             return res.status(201).json(deliveredMessage);
         }
 
-        // Receiver is offline — return original message
+        // If user is offline
         res.status(201).json(newMessage);
 
     } catch (error) {
@@ -126,7 +138,7 @@ export const deleteMessage = async (req, res) => {
         const message = await Message.findById(messageId);
         if (!message) return res.status(404).json({ error: "Message not found" });
 
-        // DELETE FOR ME
+        // ⭐ DELETE FOR ME
         if (scope === 'me') {
             const alreadyDeleted = message.deletedBy?.some(
                 id => id.toString() === userId.toString()
@@ -148,7 +160,7 @@ export const deleteMessage = async (req, res) => {
             return res.status(200).json({ success: true, message: payload });
         }
 
-        // DELETE FOR EVERYONE (only sender)
+        // ⭐ DELETE FOR EVERYONE (ONLY SENDER)
         if (scope === 'everyone') {
             if (message.senderId.toString() !== userId.toString()) {
                 return res.status(403).json({ error: "Only sender can delete this message" });
@@ -168,7 +180,6 @@ export const deleteMessage = async (req, res) => {
             return res.status(200).json({ success: true, message: payload });
         }
 
-        // Invalid scope
         res.status(400).json({ error: "Invalid scope" });
 
     } catch (error) {

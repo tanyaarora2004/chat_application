@@ -1,47 +1,92 @@
 // backend/routes/messageRoutes.js
-import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import protectRoute from '../middleware/authMiddleware.js';
+import express from "express";
+import multer from "multer";
+import path from "path";
+
+import protectRoute from "../middleware/authMiddleware.js";
 
 import {
     getMessages,
     sendMessage,
     markMessagesAsSeen,
-    deleteMessage
-} from '../controllers/messageController.js';
+    deleteMessage,
+} from "../controllers/messageController.js";
 
 const router = express.Router();
 
-// ----------------------
-// ⭐ AUDIO UPLOAD SETUP
-// ----------------------
-const storage = multer.diskStorage({
+// ============================
+// 🎤 AUDIO UPLOAD SETUP (Your original code)
+// ============================
+const audioStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "uploads/audio");
     },
     filename: function (req, file, cb) {
         const ext = path.extname(file.originalname);
         cb(null, Date.now() + ext);
-    }
+    },
 });
 
 const audioUpload = multer({
-    storage,
+    storage: audioStorage,
     limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
 });
 
-// ----------------------
+// ============================
+// 📦 FILE UPLOAD SETUP (Images, Videos, PDF, DOCX etc.)
+// ============================
+const fileStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "uploads/"); // general files folder
+    },
+    filename: function (req, file, cb) {
+        const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, unique + path.extname(file.originalname));
+    },
+});
+
+// Allow: images, videos, pdf, docx
+const fileFilter = (req, file, cb) => {
+    const allowed = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "video/mp4",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Invalid file type"), false);
+    }
+};
+
+const fileUpload = multer({
+    storage: fileStorage,
+    fileFilter,
+});
+
+// ============================
 // ROUTES
-// ----------------------
+// ============================
 
 // Get all messages
 router.get("/:id", protectRoute, getMessages);
 
-// Send text or audio message
-router.post("/send/:id", protectRoute, sendMessage);
+// ⭐ Send message with:
+// - text
+// - audioUrl
+// - fileUrl
+router.post(
+    "/send/:id",
+    protectRoute,
+    fileUpload.single("file"), // allow optional file upload
+    sendMessage
+);
 
-// Upload audio file (before sending)
+// ⭐ Upload audio separately (your old route stays same)
 router.post(
     "/upload-audio",
     protectRoute,
@@ -63,7 +108,7 @@ router.post(
 // Mark messages as seen
 router.post("/seen/:id", protectRoute, markMessagesAsSeen);
 
-// Delete message (for me or everyone)
+// Delete message
 router.delete("/:id", protectRoute, deleteMessage);
 
 export default router;

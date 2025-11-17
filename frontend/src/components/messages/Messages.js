@@ -1,3 +1,5 @@
+// frontend/src/components/chat/Messages.js
+
 import React, { useEffect, useRef } from 'react';
 import Message from './Message.js';
 import useGetMessages from '../../hooks/useGetMessages.js';
@@ -19,39 +21,32 @@ const MessageSkeleton = () => {
 
 const Messages = () => {
     const { loading } = useGetMessages();
-    const { selectedConversation, messages } = useConversation(); // Direct subscription to store
+    const { selectedConversation, messages } = useConversation();
     const lastMessageRef = useRef();
 
-    // Listen to socket events for new messages or seen updates
+    // Listen to new real-time messages
     useListenMessages();
 
-    // Auto scroll to the last message whenever messages update
+    // Auto scroll to last message
     useEffect(() => {
         setTimeout(() => {
             lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
     }, [messages]);
 
-    // --- MARK MESSAGES AS SEEN WHEN VIEWED ---
+    // Mark messages as seen
     useEffect(() => {
         const markAsSeen = async () => {
             if (selectedConversation && messages.length > 0) {
-                // Check if there are any unread messages from the other user
                 const hasUnread = messages.some(
                     (msg) =>
                         msg.senderId === selectedConversation._id &&
                         msg.status !== "seen"
                 );
 
-                console.log("📖 Checking for unread messages from:", selectedConversation._id, "hasUnread:", hasUnread);
-
                 if (hasUnread) {
                     try {
-                        console.log("📖 Making API call to mark messages as seen for:", selectedConversation._id);
-                        // Mark all unseen messages in this chat as seen
                         await apiClient.post(`/messages/seen/${selectedConversation._id}`);
-                        console.log("📖 Successfully marked messages as seen");
-                        // Socket event will update other user's UI via useListenMessages
                     } catch (error) {
                         console.error("❌ Failed to mark messages as seen:", error);
                     }
@@ -61,7 +56,6 @@ const Messages = () => {
 
         markAsSeen();
     }, [messages, selectedConversation]);
-    // --- END MARK SEEN ---
 
     let lastMessageDate = null;
 
@@ -74,17 +68,22 @@ const Messages = () => {
                     const messageDate = new Date(message.createdAt).toDateString();
                     const showDateSeparator = messageDate !== lastMessageDate;
                     lastMessageDate = messageDate;
+
                     const isLastMessage = index === messages.length - 1;
 
                     return (
                         <React.Fragment key={message._id}>
+                            {/* DATE SEPARATOR */}
                             {showDateSeparator && (
                                 <div className="date-separator">
                                     <span>{formatDateSeparator(message.createdAt)}</span>
                                 </div>
                             )}
+
+                            {/* FILE-SHARING SUPPORT (just like second code) */}
                             <div ref={isLastMessage ? lastMessageRef : null}>
-                                <Message message={message} />
+                                <Message message={message} /> 
+                                {/* Message component already handles fileUrl, audio, etc. */}
                             </div>
                         </React.Fragment>
                     );
