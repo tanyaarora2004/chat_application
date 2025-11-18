@@ -2,6 +2,7 @@ import React from 'react';
 import Sidebar from '../components/sidebar/Sidebar.js';
 import MessageContainer from '../components/messages/MessageContainer.js';
 import Navbar from '../components/layout/Navbar.js';
+import AudioCall from '../components/calls/AudioCall.js';
 import '../styles/Chat.css';
 
 const Chat = () => {
@@ -23,6 +24,9 @@ const Chat = () => {
                     <MessageContainer />
                 </div>
             </div>
+            
+            {/* Audio Call Component - This was missing! */}
+            <AudioCall />
         </div>
     );
 };

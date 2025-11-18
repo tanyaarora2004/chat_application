@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import express from 'express';
 import Message from '../models/Message.js';
+import User from '../models/User.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -39,12 +40,12 @@ export const handleMessageStatus = async (message) => {
             }
         }
 
-        // Emit status update to sender
+        // Emit to sender
         if (senderSocketId) {
             io.to(senderSocketId).emit("messageStatusUpdate", updatedMessage);
         }
 
-        // Emit to receiver also for sync
+        // Emit to receiver
         if (receiverSocketId) {
             io.to(receiverSocketId).emit("messageStatusUpdate", updatedMessage);
         }
@@ -64,14 +65,14 @@ io.on('connection', (socket) => {
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-    // Allow joining conversation rooms (optional)
+    // Join conversation
     socket.on('joinConversation', (conversationId) => {
         if (conversationId) {
             socket.join(conversationId);
         }
     });
 
-    // Typing indicator logic
+    // Typing events
     socket.on("typing", ({ receiverId }) => {
         const receiverSocketId = getReceiverSocketId(receiverId);
         if (receiverSocketId) {
@@ -86,34 +87,100 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ✅ Message Delivered - triggered when receiver receives the message
+    // 🔥 -------------------------------------------------------------
+    // 🔥           AUDIO CALL FEATURE (WebRTC SIGNALING)
+    // 🔥 -------------------------------------------------------------
+
+    // Caller starts call → send offer
+    socket.on("call-user", async ({ to, offer }) => {
+        const receiverSocketId = getReceiverSocketId(to);
+        if (receiverSocketId) {
+            try {
+                // Get caller's information from database
+                console.log('🔍 Fetching caller info for userId:', userId);
+                const caller = await User.findById(userId).select('fullName username');
+                console.log('📋 Found caller:', caller);
+                
+                const callerInfo = {
+                    fullName: caller?.fullName || 'Unknown User',
+                    username: caller?.username || 'unknown'
+                };
+                
+                console.log('📤 Sending incoming-call with callerInfo:', callerInfo);
+                io.to(receiverSocketId).emit("incoming-call", {
+                    from: userId,
+                    callerInfo: callerInfo,
+                    offer
+                });
+            } catch (error) {
+                console.error('Error fetching caller info:', error);
+                // Fallback to basic info
+                io.to(receiverSocketId).emit("incoming-call", {
+                    from: userId,
+                    callerInfo: {
+                        fullName: 'Unknown User',
+                        username: 'unknown'
+                    },
+                    offer
+                });
+            }
+        }
+    });
+
+    // Callee accepts → send answer
+    socket.on("answer-call", async ({ to, answer }) => {
+        const callerSocketId = getReceiverSocketId(to);
+        if (callerSocketId) {
+            io.to(callerSocketId).emit("call-accepted", { answer });
+            
+            // Start synchronized timer for both users
+            const timerStartTime = Date.now();
+            io.to(callerSocketId).emit("call-timer-start", { startTime: timerStartTime });
+            io.to(socket.id).emit("call-timer-start", { startTime: timerStartTime });
+        }
+    });
+
+    // ICE Candidate exchange
+    socket.on("ice-candidate", ({ to, candidate }) => {
+        const receiverSocketId = getReceiverSocketId(to);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("ice-candidate", candidate);
+        }
+    });
+
+    // End Call
+    socket.on("end-call", ({ to }) => {
+        const receiverSocketId = getReceiverSocketId(to);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("call-ended");
+        }
+    });
+
+    // 🔥 -------------------------------------------------------------
+    // 🔥           END AUDIO CALL FEATURE
+    // 🔥 -------------------------------------------------------------
+
+    // Delivered event
     socket.on("messageDelivered", async (messageId) => {
-        console.log("📨 messageDelivered event received for messageId:", messageId);
         try {
-            // Only update if message is still in 'sent' status
             const message = await Message.findOneAndUpdate(
                 { _id: messageId, status: "sent" },
                 { status: "delivered" },
                 { new: true }
             );
+
             if (message) {
-                console.log("📨 Message updated to delivered:", message._id);
                 const senderSocketId = getReceiverSocketId(message.senderId.toString());
                 if (senderSocketId) {
-                    console.log("📨 Emitting messageStatusUpdate to sender:", message.senderId.toString());
                     io.to(senderSocketId).emit("messageStatusUpdate", message);
-                } else {
-                    console.log("❌ Sender socket not found for:", message.senderId.toString());
                 }
-            } else {
-                console.log("⚠️ Message not found or already delivered:", messageId);
             }
         } catch (err) {
-            console.error("Error updating delivered status:", err.message);
+            console.error("Error updating delivered:", err.message);
         }
     });
 
-    // ✅ Message Seen - triggered when receiver opens chat
+    // Seen event
     socket.on("messageSeen", async ({ messageIds, senderId, receiverId }) => {
         try {
             await Message.updateMany(
@@ -130,12 +197,21 @@ io.on('connection', (socket) => {
                 });
             }
         } catch (err) {
-            console.error("Error updating seen status:", err.message);
+            console.error("Error updating seen:", err.message);
         }
     });
 
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
+        
+        // Notify all other users that this user's call has ended if they were in a call
+        Object.keys(userSocketMap).forEach(otherUserId => {
+            if (otherUserId !== userId) {
+                const otherSocketId = userSocketMap[otherUserId];
+                io.to(otherSocketId).emit("call-ended");
+            }
+        });
+        
         delete userSocketMap[userId];
         io.emit("getOnlineUsers", Object.keys(userSocketMap));
     });

@@ -1,30 +1,28 @@
+// src/components/messages/MessageContainer.js
 import React, { useEffect } from 'react';
 import Messages from './Messages.js';
 import MessageInput from './MessageInput.js';
 import useConversation from '../../zustand/useConversation.js';
 import { useAuthContext } from '../../context/AuthContext';
+import { useSocketContext } from "../../context/SocketContext";
 import '../../styles/Chat.css';
 
-// Avatar component with CSS classes
+// Avatar component
 const Avatar = ({ fullName }) => {
     const initial = fullName ? fullName.charAt(0).toUpperCase() : '?';
-    return (
-        <div className="avatar">
-            {initial}
-        </div>
-    );
+    return <div className="avatar">{initial}</div>;
 };
 
-
 const MessageContainer = () => {
-    // 1. Get the typingUsers Set from the store instead of the old 'isTyping'
     const { selectedConversation, setSelectedConversation, typingUsers } = useConversation();
+    const { startCall } = useSocketContext();   // ⭐ NEW: call function from context
 
-    // 2. Derive the typing status for the currently selected user
-    const isCurrentlyTyping = selectedConversation ? typingUsers.has(selectedConversation._id) : false;
+    // Check if selected user is typing
+    const isCurrentlyTyping = selectedConversation
+        ? typingUsers.has(selectedConversation._id)
+        : false;
 
     useEffect(() => {
-        // Cleanup function to deselect conversation on unmount
         return () => setSelectedConversation(null);
     }, [setSelectedConversation]);
 
@@ -34,17 +32,50 @@ const MessageContainer = () => {
                 <NoChatSelected />
             ) : (
                 <>
+                    {/* ======================================================== */}
+                    {/*                     CHAT HEADER                          */}
+                    {/* ======================================================== */}
                     <div className="chat-header">
                         <Avatar fullName={selectedConversation.fullName} />
+
                         <div className="chat-user-details">
                             <span className="chat-user-name">
                                 {selectedConversation.fullName}
                             </span>
-                            {/* 3. Use the new derived boolean to show the indicator */}
-                            {isCurrentlyTyping && <span className="typing-indicator">Typing...</span>}
+
+                            {isCurrentlyTyping && (
+                                <span className="typing-indicator">Typing...</span>
+                            )}
+                        </div>
+
+                        {/* ======================================================== */}
+                        {/*                  WHATSAPP-STYLE CALL ACTIONS            */}
+                        {/* ======================================================== */}
+                        <div className="chat-header-actions">
+                            <button
+                                className="header-action-btn call-btn"
+                                onClick={() => {
+                                    console.log('📞 Call button clicked for:', selectedConversation.fullName, 'ID:', selectedConversation._id);
+                                    startCall(selectedConversation._id);
+                                }}
+                                title="Audio Call"
+                            >
+                                📞
+                            </button>
+                            
+                            <button
+                                className="header-action-btn menu-btn"
+                                title="More options"
+                            >
+                                ⋮
+                            </button>
                         </div>
                     </div>
+
+                    {/* Chat messages */}
                     <Messages />
+
+                    {/* Input box */}
                     <MessageInput />
                 </>
             )}
