@@ -3,20 +3,20 @@ import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import { getReceiverSocketId, io } from '../socket/socket.js';
 
-// ⭐ SEND MESSAGE (TEXT + AUDIO + FILE)
+// ⭐ SEND MESSAGE (TEXT + AUDIO + FILE + IMAGE)
 export const sendMessage = async (req, res) => {
     try {
-        const { message, audioUrl, audioDuration, messageType } = req.body;
+        const { message, audioUrl, audioDuration, messageType, imageUrl } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
-        // ⭐ Added from file upload logic
+        // ⭐ FILE (PDF, DOCX, Video, Image from file upload)
         const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
         const fileType = req.file ? req.file.mimetype : null;
 
-        // ⭐ Validate message types (text OR audio OR file)
-        if (!message && !audioUrl && !fileUrl) {
-            return res.status(400).json({ error: "Message, audio or file required" });
+        // ⭐ Ensure message is valid (text or audio or file or image)
+        if (!message && !audioUrl && !fileUrl && !imageUrl) {
+            return res.status(400).json({ error: "No message content provided" });
         }
 
         // ⭐ Find or create conversation
@@ -30,34 +30,47 @@ export const sendMessage = async (req, res) => {
             });
         }
 
-        // ⭐ Create new message (supports text + audio + file)
+        // ⭐ Detect message type correctly
+        let finalType = "text";
+
+        if (audioUrl) finalType = "audio";
+        else if (imageUrl) finalType = "image";
+        else if (fileUrl) finalType = "file";
+        else finalType = "text";
+
+        // ⭐ Create message
         const newMessage = new Message({
             senderId,
             receiverId,
+
+            // TEXT
             message: message || null,
 
             // AUDIO
             audioUrl: audioUrl || null,
             audioDuration: audioDuration || null,
-            messageType:
-                messageType ||
-                (audioUrl ? "audio" : fileUrl ? "file" : "text"),
 
-            // FILE (added from second code)
+            // CAMERA IMAGE (NEW)
+            imageUrl: imageUrl || null,
+
+            // FILE
             fileUrl,
             fileType,
+
+            // TYPE
+            messageType: messageType || finalType,
         });
 
         conversation.messages.push(newMessage._id);
 
         await Promise.all([conversation.save(), newMessage.save()]);
 
-        // ⭐ Emit in real-time
+        // ⭐ Emit to receiver (real-time)
         const receiverSocketId = getReceiverSocketId(receiverId);
         if (receiverSocketId) {
             io.to(receiverSocketId).emit("newMessage", newMessage);
 
-            // Mark delivered immediately
+            // mark delivered immediately
             const deliveredMessage = await Message.findByIdAndUpdate(
                 newMessage._id,
                 { status: "delivered" },
@@ -72,7 +85,7 @@ export const sendMessage = async (req, res) => {
             return res.status(201).json(deliveredMessage);
         }
 
-        // If user is offline
+        // If receiver is offline
         res.status(201).json(newMessage);
 
     } catch (error) {
@@ -100,7 +113,7 @@ export const getMessages = async (req, res) => {
     }
 };
 
-// ⭐ SEEN STATUS
+// ⭐ MESSAGE SEEN
 export const markMessagesAsSeen = async (req, res) => {
     try {
         const { id: otherUserId } = req.params;
@@ -160,7 +173,7 @@ export const deleteMessage = async (req, res) => {
             return res.status(200).json({ success: true, message: payload });
         }
 
-        // ⭐ DELETE FOR EVERYONE (ONLY SENDER)
+        // ⭐ DELETE FOR EVERYONE
         if (scope === 'everyone') {
             if (message.senderId.toString() !== userId.toString()) {
                 return res.status(403).json({ error: "Only sender can delete this message" });

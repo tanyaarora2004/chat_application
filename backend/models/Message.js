@@ -15,12 +15,13 @@ const messageSchema = new mongoose.Schema(
             required: true,
         },
 
-        // Normal text message
+        // ⭐ TEXT MESSAGE
         message: {
             type: String,
+            default: null,
         },
 
-        // ⭐ AUDIO MESSAGE SUPPORT (Your original code)
+        // ⭐ AUDIO MESSAGE SUPPORT
         audioUrl: {
             type: String,
             default: null,
@@ -31,32 +32,38 @@ const messageSchema = new mongoose.Schema(
             default: null,
         },
 
-        // ⭐ FILE MESSAGE SUPPORT (PDF, DOCX, IMAGES, VIDEO, etc.)
+        // ⭐ CAMERA IMAGE (NEW)
+        imageUrl: {
+            type: String,
+            default: null,
+        },
+
+        // ⭐ FILE MESSAGE SUPPORT (Documents, Videos, Images uploaded manually)
         fileUrl: {
-            type: String, 
+            type: String,
             default: null,
         },
 
         fileType: {
-            type: String, // MIME type (application/pdf, image/png, etc.)
-            default: null,
+            type: String,
+            default: null, // mime type
         },
 
-        // ⭐ MESSAGE TYPE (Now supports text, audio, file)
+        // ⭐ MESSAGE TYPE (updated)
         messageType: {
             type: String,
-            enum: ["text", "audio", "file"],
+            enum: ["text", "audio", "image", "file"],
             default: "text",
         },
 
-        // ⭐ STATUS
+        // ⭐ MESSAGE DELIVERY STATUS
         status: {
             type: String,
             enum: ["sent", "delivered", "seen"],
             default: "sent",
         },
 
-        // ⭐ DELETION LOGIC (Your original code)
+        // ⭐ DELETION LOGIC
         deletedForEveryone: {
             type: Boolean,
             default: false,

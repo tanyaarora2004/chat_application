@@ -7,6 +7,54 @@ const useSendMessage = () => {
     const [loading, setLoading] = useState(false);
     const { messages, setMessages, selectedConversation } = useConversation();
 
+    // ⭐ NEW: CAMERA IMAGE SENDER
+    const uploadImageAndSend = async ({ fileBlob, conversationId }) => {
+        try {
+            console.log("📤 Starting image upload...", fileBlob);
+            setLoading(true);
+
+            const form = new FormData();
+            form.append("image", fileBlob, "camera.jpg");
+
+            console.log("📤 Uploading to /messages/upload-image...");
+            
+            // 1️⃣ Upload to server (multer)
+            const uploadResponse = await apiClient.post(
+                "/messages/upload-image",
+                form,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            console.log("📤 Upload response:", uploadResponse.data);
+            const imageUrl = uploadResponse.data.url;
+
+            console.log("📤 Creating message with imageUrl:", imageUrl);
+            
+            // 2️⃣ Now create a message in DB
+            const msgResponse = await apiClient.post(
+                `/messages/send/${conversationId}`,
+                {
+                    imageUrl,
+                    messageType: "image",
+                }
+            );
+
+            console.log("📤 Message response:", msgResponse.data);
+
+            // 3️⃣ Update UI
+            setMessages([...messages, msgResponse.data]);
+
+        } catch (err) {
+            console.error("📤 Image send failed:", err);
+            console.error("📤 Error details:", err.response?.data || err.message);
+            toast.error(`Failed to send image: ${err.response?.data?.error || err.message || "Unknown error"}`);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ⭐ EXISTING FUNCTION (text, audio, file)
     const sendMessage = async (messageData, file = null) => {
         setLoading(true);
         try {
@@ -43,7 +91,7 @@ const useSendMessage = () => {
             }
 
             // ------------------------------
-            // 3️⃣ FILE MESSAGE (ADDED NOW)
+            // 3️⃣ FILE MESSAGE (unchanged)
             // ------------------------------
             else if (file) {
                 const formData = new FormData();
@@ -74,7 +122,8 @@ const useSendMessage = () => {
         }
     };
 
-    return { sendMessage, loading };
+    // ⭐ NOTE: now returning uploadImageAndSend also
+    return { sendMessage, uploadImageAndSend, loading };
 };
 
 export default useSendMessage;

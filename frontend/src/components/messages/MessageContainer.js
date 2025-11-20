@@ -1,10 +1,12 @@
 // src/components/messages/MessageContainer.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Messages from './Messages.js';
 import MessageInput from './MessageInput.js';
+import CameraModal from './CameraModal.js';
 import useConversation from '../../zustand/useConversation.js';
 import { useAuthContext } from '../../context/AuthContext';
 import { useSocketContext } from "../../context/SocketContext";
+import useSendMessage from '../../hooks/useSendMessage.js';
 import '../../styles/Chat.css';
 
 // Avatar component
@@ -15,12 +17,29 @@ const Avatar = ({ fullName }) => {
 
 const MessageContainer = () => {
     const { selectedConversation, setSelectedConversation, typingUsers } = useConversation();
-    const { startCall } = useSocketContext();   // ⭐ NEW: call function from context
+    const { startCall } = useSocketContext();
+    const { uploadImageAndSend } = useSendMessage();
+    
+    // Camera state
+    const [openCamera, setOpenCamera] = useState(false);
 
     // Check if selected user is typing
     const isCurrentlyTyping = selectedConversation
         ? typingUsers.has(selectedConversation._id)
         : false;
+
+    // Camera capture handler
+    const handleCapture = async (blob) => {
+        try {
+            await uploadImageAndSend({
+                fileBlob: blob,
+                conversationId: selectedConversation._id,
+            });
+            setOpenCamera(false);
+        } catch (err) {
+            alert("Failed to send image");
+        }
+    };
 
     useEffect(() => {
         return () => setSelectedConversation(null);
@@ -32,6 +51,14 @@ const MessageContainer = () => {
                 <NoChatSelected />
             ) : (
                 <>
+                    {/* Camera Modal */}
+                    {openCamera && (
+                        <CameraModal
+                            onClose={() => setOpenCamera(false)}
+                            onCapture={handleCapture}
+                        />
+                    )}
+
                     {/* ======================================================== */}
                     {/*                     CHAT HEADER                          */}
                     {/* ======================================================== */}
@@ -76,7 +103,7 @@ const MessageContainer = () => {
                     <Messages />
 
                     {/* Input box */}
-                    <MessageInput />
+                    <MessageInput onOpenCamera={() => setOpenCamera(true)} />
                 </>
             )}
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuthContext } from "../../context/AuthContext";
 import "../../styles/Chat.css";
 import ReadReceipt from "./ReadReceipt.js";
+import ImageViewer from "./ImageViewer.js";
 import apiClient from "../../api/api.js";
 import useConversation from "../../zustand/useConversation";
 import { useSocketContext } from "../../context/SocketContext";
@@ -12,6 +13,8 @@ const Message = ({ message }) => {
 
     const fromMe = message.senderId?.toString() === authUser?._id?.toString();
     const [showPopup, setShowPopup] = useState(false);
+    const [showImageViewer, setShowImageViewer] = useState(false);
+    const [viewerImageUrl, setViewerImageUrl] = useState("");
 
     // Deletion
     const iDeleted =
@@ -36,9 +39,37 @@ const Message = ({ message }) => {
         }
     };
 
-    // --------------------------
-    // 📁 FILE RENDERING LOGIC (IMPROVED)
-    // --------------------------
+    // ============================================================
+    // 📸 CAMERA / IMAGE MESSAGE (NEW)
+    // ============================================================
+    const isImageMsg = message.messageType === "image" && message.imageUrl;
+
+    const renderImageMessage = () => {
+        if (!isImageMsg) return null;
+
+        const img = `http://localhost:5000${message.imageUrl}`;
+
+        const handleImageClick = (e) => {
+            e.stopPropagation();
+            setViewerImageUrl(img);
+            setShowImageViewer(true);
+        };
+
+        return (
+            <div className="file-message image-message" onClick={(e) => e.stopPropagation()}>
+                <img
+                    src={img}
+                    alt="Camera Capture"
+                    className="chat-image"
+                    onClick={handleImageClick}
+                />
+            </div>
+        );
+    };
+
+    // ============================================================
+    // 📁 FILE RENDERING LOGIC (existing)
+    // ============================================================
     const renderFile = () => {
         if (!message.fileUrl) return null;
 
@@ -48,13 +79,19 @@ const Message = ({ message }) => {
 
         // IMAGE
         if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+            const handleImageClick = (e) => {
+                e.stopPropagation();
+                setViewerImageUrl(file);
+                setShowImageViewer(true);
+            };
+
             return (
                 <div className="file-message image-message" onClick={(e) => e.stopPropagation()}>
                     <img 
                         src={file} 
                         alt={fileName} 
                         className="chat-image" 
-                        onClick={() => window.open(file, '_blank')}
+                        onClick={handleImageClick}
                     />
                 </div>
             );
@@ -87,7 +124,7 @@ const Message = ({ message }) => {
             );
         }
 
-        // DOCUMENTS (DOC, DOCX, PPT, etc.)
+        // DOC, PPT, XLS, etc
         if (["doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt"].includes(ext)) {
             return (
                 <div className="file-message document-message" onClick={(e) => e.stopPropagation()}>
@@ -102,7 +139,7 @@ const Message = ({ message }) => {
             );
         }
 
-        // OTHER FILES (ZIP, etc.)
+        // OTHER FILES (ZIP, RAR, etc.)
         return (
             <div className="file-message document-message" onClick={(e) => e.stopPropagation()}>
                 <div className="file-info" onClick={() => window.open(file, '_blank')} style={{cursor: 'pointer'}}>
@@ -116,13 +153,12 @@ const Message = ({ message }) => {
         );
     };
 
-    // ----------------------------------
-    // 🔥 VOICE MESSAGE RENDERING
-    // ----------------------------------
+    // ============================================================
+    // 🔊 VOICE MESSAGE RENDER
+    // ============================================================
     const isVoiceMsg = message.messageType === "audio" && message.audioUrl;
 
     const renderMessageContent = () => {
-        // AUDIO
         if (isVoiceMsg) {
             return (
                 <audio
@@ -133,14 +169,8 @@ const Message = ({ message }) => {
                     disablePictureInPicture
                     preload="metadata"
                 >
-                    <source
-                        src={`http://localhost:5000${message.audioUrl}`}
-                        type="audio/webm"
-                    />
-                    <source
-                        src={`http://localhost:5000${message.audioUrl}`}
-                        type="audio/wav"
-                    />
+                    <source src={`http://localhost:5000${message.audioUrl}`} type="audio/webm" />
+                    <source src={`http://localhost:5000${message.audioUrl}`} type="audio/wav" />
                     Your browser does not support the audio element.
                 </audio>
             );
@@ -149,9 +179,9 @@ const Message = ({ message }) => {
         return message.message;
     };
 
-    // ================================
+    // ============================================================
     // DELETED FOR EVERYONE
-    // ================================
+    // ============================================================
     if (isDeletedForEveryone) {
         return (
             <div className={`message-wrapper ${fromMe ? "from-me" : "from-them"}`}>
@@ -161,26 +191,20 @@ const Message = ({ message }) => {
 
                 <div className={`message-time ${fromMe ? "from-me" : "from-them"}`}>
                     <span>{formattedTime}</span>
-                    {fromMe && (
-                        <span className="message-receipt">
-                            <ReadReceipt status={message.status} />
-                        </span>
-                    )}
+                    {/* No read receipts for deleted messages */}
                 </div>
             </div>
         );
     }
 
-    // ================================
+    // ============================================================
     // DELETED ONLY FOR ME
-    // ================================
+    // ============================================================
     if (iDeleted) {
         return (
             <div className={`message-wrapper ${fromMe ? "from-me" : "from-them"}`}>
                 <div
-                    className={`message-bubble deleted-for-me ${
-                        fromMe ? "from-me" : "from-them"
-                    }`}
+                    className={`message-bubble deleted-for-me ${fromMe ? "from-me" : "from-them"}`}
                 >
                     <i>You deleted this message</i>
                 </div>
@@ -192,9 +216,9 @@ const Message = ({ message }) => {
         );
     }
 
-    // ================================
+    // ============================================================
     // NORMAL MESSAGE
-    // ================================
+    // ============================================================
     return (
         <>
             <div
@@ -202,16 +226,19 @@ const Message = ({ message }) => {
                 onClick={() => setShowPopup(true)}
             >
                 <div className={`message-bubble ${fromMe ? "from-me" : "from-them"}`}>
-                    {/* TEXT OR AUDIO */}
+
+                    {/* 🔥 CAMERA IMAGE (NEW) */}
+                    {renderImageMessage()}
+
+                    {/* TEXT / AUDIO */}
                     {renderMessageContent()}
 
-                    {/* FILE PREVIEW (ADDED FEATURE) */}
+                    {/* FILE PREVIEW */}
                     {renderFile()}
                 </div>
 
                 <div className={`message-time ${fromMe ? "from-me" : "from-them"}`}>
                     <span>{formattedTime}</span>
-
                     {fromMe && (
                         <span className="message-receipt">
                             <ReadReceipt status={message.status} />
@@ -222,20 +249,11 @@ const Message = ({ message }) => {
 
             {/* DELETE POPUP */}
             {showPopup && (
-                <div
-                    className="delete-popup-overlay"
-                    onClick={() => setShowPopup(false)}
-                >
-                    <div
-                        className="delete-popup"
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                <div className="delete-popup-overlay" onClick={() => setShowPopup(false)}>
+                    <div className="delete-popup" onClick={(e) => e.stopPropagation()}>
                         <p className="delete-popup-title">Delete this message?</p>
 
-                        <button
-                            className="delete-popup-btn"
-                            onClick={() => handleDelete("me")}
-                        >
+                        <button className="delete-popup-btn" onClick={() => handleDelete("me")}>
                             Delete for me
                         </button>
 
@@ -259,6 +277,13 @@ const Message = ({ message }) => {
                     </div>
                 </div>
             )}
+
+            {/* FULL-SCREEN IMAGE VIEWER */}
+            <ImageViewer
+                imageUrl={viewerImageUrl}
+                isOpen={showImageViewer}
+                onClose={() => setShowImageViewer(false)}
+            />
         </>
     );
 };

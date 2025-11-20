@@ -5,20 +5,22 @@ import { useSocketContext } from "../../context/SocketContext.js";
 import useConversation from "../../zustand/useConversation.js";
 import EmojiPicker from "emoji-picker-react";
 
-const MessageInput = () => {
+const MessageInput = ({ onOpenCamera }) => {
     const [message, setMessage] = useState("");
     const [isRecording, setIsRecording] = useState(false);
     const [recorder, setRecorder] = useState(null);
     const [audioBlob, setAudioBlob] = useState(null);
     const [file, setFile] = useState(null);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false); // ⭐ NEW
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const mediaChunks = useRef([]);
 
     const { loading, sendMessage } = useSendMessage();
     const { socket } = useSocketContext();
     const { selectedConversation } = useConversation();
 
-    // --------------------- AUDIO RECORDING ---------------------
+    // ---------------------------------------------------
+    // AUDIO RECORDING
+    // ---------------------------------------------------
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -50,7 +52,8 @@ const MessageInput = () => {
             recorder.stop();
             setIsRecording(false);
 
-            if (socket) socket.emit("stopTyping", { receiverId: selectedConversation._id });
+            if (socket)
+                socket.emit("stopTyping", { receiverId: selectedConversation._id });
         }
     };
 
@@ -65,23 +68,22 @@ const MessageInput = () => {
         }
     };
 
-    const cancelAudioMessage = () => {
-        setAudioBlob(null);
-    };
-
-    // --------------------- FILE UPLOAD ---------------------
+    // ---------------------------------------------------
+    // FILE UPLOAD
+    // ---------------------------------------------------
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
     };
 
-    // --------------------- SEND TEXT / FILE ---------------------
+    // ---------------------------------------------------
+    // TEXT / FILE SUBMIT
+    // ---------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!message.trim() && !file) return;
 
-        if (socket) {
+        if (socket)
             socket.emit("stopTyping", { receiverId: selectedConversation._id });
-        }
 
         await sendMessage(message, file);
 
@@ -90,37 +92,43 @@ const MessageInput = () => {
         setShowEmojiPicker(false);
     };
 
-    // --------------------- TYPING EVENTS ---------------------
+    // ---------------------------------------------------
+    // TYPING EVENTS
+    // ---------------------------------------------------
     const handleTyping = (e) => {
         setMessage(e.target.value);
-        if (socket) socket.emit("typing", { receiverId: selectedConversation._id });
+        if (socket)
+            socket.emit("typing", { receiverId: selectedConversation._id });
     };
 
     const handleStopTyping = () => {
-        if (socket) socket.emit("stopTyping", { receiverId: selectedConversation._id });
+        if (socket)
+            socket.emit("stopTyping", { receiverId: selectedConversation._id });
     };
 
-    // ⭐ ADD EMOJI TO TEXT
+    // ---------------------------------------------------
+    // EMOJI PICKER
+    // ---------------------------------------------------
     const handleEmojiClick = (emojiData) => {
         setMessage(prev => prev + emojiData.emoji);
     };
 
+    // ---------------------------------------------------
+    // UI RENDER
+    // ---------------------------------------------------
     return (
         <div className="message-input-container">
 
+            {/* AUDIO PREVIEW */}
             {audioBlob ? (
-                // --------------------- AUDIO PREVIEW ---------------------
                 <div className="audio-preview-container">
-                    <div className="audio-preview">
-                        <audio
-                            controls
-                            controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
-                            disablePictureInPicture
-                            onContextMenu={(e) => e.preventDefault()}
-                        >
-                            <source src={URL.createObjectURL(audioBlob)} type="audio/webm" />
-                        </audio>
-                    </div>
+                    <audio
+                        controls
+                        className="audio-preview"
+                        controlsList="nodownload"
+                    >
+                        <source src={URL.createObjectURL(audioBlob)} type="audio/webm" />
+                    </audio>
 
                     <div className="audio-preview-actions">
                         <button
@@ -135,47 +143,35 @@ const MessageInput = () => {
                         <button
                             type="button"
                             className="cancel-audio-button"
-                            onClick={cancelAudioMessage}
+                            onClick={() => setAudioBlob(null)}
                         >
                             ✕
                         </button>
                     </div>
                 </div>
-
             ) : (
-                // --------------------- NORMAL CHAT INPUT ---------------------
+                // ---------------------------------------------------
+                // MESSAGE INPUT FORM
+                // ---------------------------------------------------
                 <form onSubmit={handleSubmit} className="message-input-form">
 
                     {/* FILE PREVIEW */}
                     {file && (
                         <div className="file-preview">
-                            <div className="file-preview-info">
-                                <span className="file-preview-icon">📎</span>
-                                <span className="file-preview-name">{file.name}</span>
-                                <span className="file-preview-size">
-                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                                </span>
-                                <button
-                                    type="button"
-                                    className="remove-file-button"
-                                    onClick={() => setFile(null)}
-                                >
-                                    ✕
-                                </button>
-                            </div>
+                            <span>{file.name}</span>
+                            <button onClick={() => setFile(null)}>✕</button>
                         </div>
                     )}
 
-                    {/* ⭐ EMOJI BUTTON - LEFT SIDE */}
+                    {/* EMOJI BUTTON */}
                     <button
                         type="button"
                         className="emoji-button"
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        onClick={() => setShowEmojiPicker(prev => !prev)}
                     >
                         😀
                     </button>
 
-                    {/* ⭐ EMOJI PICKER POPUP */}
                     {showEmojiPicker && (
                         <div className="emoji-picker-container">
                             <EmojiPicker onEmojiClick={handleEmojiClick} />
@@ -202,7 +198,16 @@ const MessageInput = () => {
                         onChange={handleFileChange}
                     />
 
-                    {/* AUDIO RECORD */}
+                    {/* CAMERA BUTTON */}
+                    <button
+                        type="button"
+                        className="camera-button"
+                        onClick={onOpenCamera}
+                    >
+                        📷
+                    </button>
+
+                    {/* AUDIO RECORD BUTTON */}
                     {!isRecording ? (
                         <button type="button" className="voice-button" onClick={startRecording}>
                             🎙️

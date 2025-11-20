@@ -69,6 +69,52 @@ const fileUpload = multer({
 });
 
 // ============================
+// ⭐ CAMERA IMAGE UPLOAD (NEW)
+// ============================
+const imageStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "uploads/images"); // camera images folder
+    },
+    filename: function (req, file, cb) {
+        const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, unique + path.extname(file.originalname));
+    },
+});
+
+const imageFilter = (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only image files allowed"), false);
+};
+
+const imageUpload = multer({
+    storage: imageStorage,
+    fileFilter: imageFilter,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+});
+
+// ============================
+// ⭐ New Route: Upload Camera Image
+// ============================
+router.post(
+    "/upload-image",
+    protectRoute,
+    imageUpload.single("image"),
+    (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ error: "No image uploaded" });
+        }
+
+        const url = `/uploads/images/${req.file.filename}`;
+
+        res.status(200).json({
+            success: true,
+            url,
+        });
+    }
+);
+
+// ============================
 // ROUTES
 // ============================
 

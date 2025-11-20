@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .camera-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        video {
+            max-width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 10px;
+        }
+        canvas {
+            max-width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .capture { background: #007bff; color: white; }
+        .test { background: #28a745; color: white; }
+        .result { 
+            margin: 20px 0; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 5px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Camera Functionality Test</h1>
+    
+    <div class="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        
+        <div>
+            <button class="test" onclick="testCameraAccess()">Test Camera Access</button>
+            <button class="capture" onclick="capturePhoto()">Capture Photo</button>
+            <button class="test" onclick="testUpload()">Test Upload</button>
+        </div>
+        
+        <div id="result" class="result"></div>
+        <img id="preview" style="display: none; max-width: 100%; border-radius: 10px;">
+    </div>
+
+    <script>
+        let stream = null;
+        let capturedBlob = null;
+
+        async function testCameraAccess() {
+            const resultDiv = document.getElementById('result');
+            const video = document.getElementById('video');
+
+            try {
+                console.log("🔧 Testing camera access...");
+                resultDiv.innerHTML = "🔄 Requesting camera access...";
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+
+                video.srcObject = stream;
+                resultDiv.innerHTML = "✅ Camera access granted!<br>Video dimensions: " + 
+                    video.videoWidth + "x" + video.videoHeight;
+                
+                console.log("🔧 Camera stream:", stream);
+
+            } catch (error) {
+                console.error("🔧 Camera error:", error);
+                resultDiv.innerHTML = "❌ Camera access failed: " + error.message;
+            }
+        }
+
+        function capturePhoto() {
+            const resultDiv = document.getElementById('result');
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const preview = document.getElementById('preview');
+
+            if (!stream) {
+                resultDiv.innerHTML = "❌ Please test camera access first";
+                return;
+            }
+
+            try {
+                console.log("🔧 Capturing photo...");
+                resultDiv.innerHTML = "🔄 Capturing photo...";
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob((blob) => {
+                    capturedBlob = blob;
+                    
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        preview.src = url;
+                        preview.style.display = 'block';
+                        
+                        resultDiv.innerHTML = "✅ Photo captured!<br>" +
+                            "Blob size: " + (blob.size / 1024).toFixed(2) + " KB<br>" +
+                            "Type: " + blob.type;
+                        
+                        console.log("🔧 Captured blob:", blob);
+                    } else {
+                        resultDiv.innerHTML = "❌ Failed to create blob";
+                    }
+                }, 'image/jpeg', 0.85);
+
+            } catch (error) {
+                console.error("🔧 Capture error:", error);
+                resultDiv.innerHTML = "❌ Capture failed: " + error.message;
+            }
+        }
+
+        async function testUpload() {
+            const resultDiv = document.getElementById('result');
+
+            if (!capturedBlob) {
+                resultDiv.innerHTML = "❌ Please capture a photo first";
+                return;
+            }
+
+            try {
+                console.log("🔧 Testing upload...");
+                resultDiv.innerHTML = "🔄 Testing upload to server...";
+
+                const formData = new FormData();
+                formData.append('image', capturedBlob, 'camera.jpg');
+
+                const response = await fetch('http://localhost:5000/api/messages/upload-image', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = "✅ Upload successful!<br>" +
+                        "URL: " + result.url + "<br>" +
+                        "Full response: " + JSON.stringify(result, null, 2);
+                } else {
+                    resultDiv.innerHTML = "❌ Upload failed: " + 
+                        (result.error || "Unknown error");
+                }
+
+                console.log("🔧 Upload result:", result);
+
+            } catch (error) {
+                console.error("🔧 Upload error:", error);
+                resultDiv.innerHTML = "❌ Upload error: " + error.message;
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

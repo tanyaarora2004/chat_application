@@ -43,7 +43,7 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 5000;
 
 // ------------------------------
-// 7️⃣ CORS (Important for audio uploads + sockets)
+// 7️⃣ CORS
 // ------------------------------
 app.use(
     cors({
@@ -57,8 +57,8 @@ app.use(
 // ------------------------------
 // 8️⃣ Middlewares
 // ------------------------------
-app.use(express.json({ limit: '50mb' }));     // Audio needs higher limit
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));  
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 app.use(
@@ -78,16 +78,32 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // ------------------------------
-// 9️⃣ Static folder for audio
+// 9️⃣ Ensure upload directories exist
 // ------------------------------
-// Create uploads directory if it doesn't exist
 import fs from 'fs';
-const uploadsDir = path.join(__dirname, 'uploads', 'audio');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    console.log('📁 Created uploads/audio directory');
+
+// AUDIO folder
+const audioDir = path.join(__dirname, 'uploads', 'audio');
+if (!fs.existsSync(audioDir)) {
+    fs.mkdirSync(audioDir, { recursive: true });
+    console.log("📁 Created uploads/audio directory");
 }
 
+// IMAGES folder (⭐ NEW for CAMERA)
+const imagesDir = path.join(__dirname, 'uploads', 'images');
+if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log("📁 Created uploads/images directory");
+}
+
+// GENERAL FILES folder (pdf, docs, videos)
+const otherFilesDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(otherFilesDir)) {
+    fs.mkdirSync(otherFilesDir, { recursive: true });
+    console.log("📁 Created uploads directory");
+}
+
+// Serve all uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ------------------------------
