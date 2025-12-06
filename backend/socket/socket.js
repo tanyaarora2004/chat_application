@@ -90,11 +90,12 @@ io.on('connection', (socket) => {
     });
 
     // -------------------------------------------------------------
-    // 🔥 AUDIO CALL FEATURE (WebRTC SIGNALING)
+    // 🔥 AUDIO + VIDEO CALL FEATURE (WebRTC SIGNALING)
     // -------------------------------------------------------------
 
     // Caller → Offer
-    socket.on("call-user", async ({ to, offer }) => {
+    // Now supports callType: "audio" | "video"
+    socket.on("call-user", async ({ to, offer, callType = "audio" }) => {
         const receiverSocketId = getReceiverSocketId(to);
         if (receiverSocketId) {
             try {
@@ -108,7 +109,8 @@ io.on('connection', (socket) => {
                 io.to(receiverSocketId).emit("incoming-call", {
                     from: userId,
                     callerInfo,
-                    offer
+                    offer,
+                    callType, // ⭐ tell receiver it’s audio or video
                 });
             } catch (error) {
                 io.to(receiverSocketId).emit("incoming-call", {
@@ -117,17 +119,18 @@ io.on('connection', (socket) => {
                         fullName: 'Unknown User',
                         username: 'unknown'
                     },
-                    offer
+                    offer,
+                    callType,
                 });
             }
         }
     });
 
     // Callee → Answer
-    socket.on("answer-call", ({ to, answer }) => {
+    socket.on("answer-call", ({ to, answer, callType = "audio" }) => {
         const callerSocketId = getReceiverSocketId(to);
         if (callerSocketId) {
-            io.to(callerSocketId).emit("call-accepted", { answer });
+            io.to(callerSocketId).emit("call-accepted", { answer, callType });
 
             const timerStartTime = Date.now();
             io.to(callerSocketId).emit("call-timer-start", { startTime: timerStartTime });
@@ -144,10 +147,10 @@ io.on('connection', (socket) => {
     });
 
     // End Call
-    socket.on("end-call", ({ to }) => {
+    socket.on("end-call", ({ to, callType }) => {
         const receiverSocketId = getReceiverSocketId(to);
         if (receiverSocketId) {
-            io.to(receiverSocketId).emit("call-ended");
+            io.to(receiverSocketId).emit("call-ended", { callType: callType || "audio" });
         }
     });
 

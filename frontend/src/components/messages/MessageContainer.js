@@ -1,34 +1,33 @@
 // src/components/messages/MessageContainer.js
-import React, { useEffect, useState } from 'react';
-import Messages from './Messages.js';
-import MessageInput from './MessageInput.js';
-import CameraModal from './CameraModal.js';
-import useConversation from '../../zustand/useConversation.js';
-import { useAuthContext } from '../../context/AuthContext';
+import React, { useEffect, useState } from "react";
+import Messages from "./Messages.js";
+import MessageInput from "./MessageInput.js";
+import CameraModal from "./CameraModal.js";
+import useConversation from "../../zustand/useConversation.js";
+import { useAuthContext } from "../../context/AuthContext";
 import { useSocketContext } from "../../context/SocketContext";
-import useSendMessage from '../../hooks/useSendMessage.js';
-import '../../styles/Chat.css';
+import useSendMessage from "../../hooks/useSendMessage.js";
+import "../../styles/Chat.css";
 
 // Avatar component
 const Avatar = ({ fullName }) => {
-    const initial = fullName ? fullName.charAt(0).toUpperCase() : '?';
+    const initial = fullName ? fullName.charAt(0).toUpperCase() : "?";
     return <div className="avatar">{initial}</div>;
 };
 
 const MessageContainer = () => {
-    const { selectedConversation, setSelectedConversation, typingUsers } = useConversation();
+    const { selectedConversation, setSelectedConversation, typingUsers } =
+        useConversation();
     const { startCall } = useSocketContext();
     const { uploadImageAndSend } = useSendMessage();
-    
+
     // Camera state
     const [openCamera, setOpenCamera] = useState(false);
 
-    // Check if selected user is typing
     const isCurrentlyTyping = selectedConversation
         ? typingUsers.has(selectedConversation._id)
         : false;
 
-    // Camera capture handler
     const handleCapture = async (blob) => {
         try {
             await uploadImageAndSend({
@@ -59,9 +58,7 @@ const MessageContainer = () => {
                         />
                     )}
 
-                    {/* ======================================================== */}
-                    {/*                     CHAT HEADER                          */}
-                    {/* ======================================================== */}
+                    {/* CHAT HEADER */}
                     <div className="chat-header">
                         <Avatar fullName={selectedConversation.fullName} />
 
@@ -71,25 +68,39 @@ const MessageContainer = () => {
                             </span>
 
                             {isCurrentlyTyping && (
-                                <span className="typing-indicator">Typing...</span>
+                                <span className="typing-indicator">
+                                    Typing...
+                                </span>
                             )}
                         </div>
 
-                        {/* ======================================================== */}
-                        {/*                  WHATSAPP-STYLE CALL ACTIONS            */}
-                        {/* ======================================================== */}
+                        {/* CALL ACTIONS */}
                         <div className="chat-header-actions">
+                            {/* ⭐ NEW – VIDEO CALL BUTTON */}
                             <button
                                 className="header-action-btn call-btn"
-                                onClick={() => {
-                                    console.log('📞 Call button clicked for:', selectedConversation.fullName, 'ID:', selectedConversation._id);
-                                    startCall(selectedConversation._id);
-                                }}
+                                onClick={() =>
+                                    startCall(
+                                        selectedConversation._id,
+                                        "video"
+                                    )
+                                }
+                                title="Video Call"
+                            >
+                                📹
+                            </button>
+
+                            {/* Existing audio call button */}
+                            <button
+                                className="header-action-btn call-btn"
+                                onClick={() =>
+                                    startCall(selectedConversation._id)
+                                }
                                 title="Audio Call"
                             >
                                 📞
                             </button>
-                            
+
                             <button
                                 className="header-action-btn menu-btn"
                                 title="More options"
@@ -116,7 +127,9 @@ const NoChatSelected = () => {
         <div className="no-chat-selected">
             <div className="no-chat-content fade-in">
                 <p className="welcome-title">Welcome {authUser?.fullName}</p>
-                <p className="welcome-subtitle">Select a chat to start messaging</p>
+                <p className="welcome-subtitle">
+                    Select a chat to start messaging
+                </p>
             </div>
         </div>
     );

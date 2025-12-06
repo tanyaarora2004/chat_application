@@ -1,32 +1,40 @@
-import React from 'react';
-import Sidebar from '../components/sidebar/Sidebar.js';
-import MessageContainer from '../components/messages/MessageContainer.js';
-import Navbar from '../components/layout/Navbar.js';
-import AudioCall from '../components/calls/AudioCall.js';
-import '../styles/Chat.css';
+// src/pages/Chat.js
+import React from "react";
+import Sidebar from "../components/sidebar/Sidebar.js";
+import MessageContainer from "../components/messages/MessageContainer.js";
+import Navbar from "../components/layout/Navbar.js";
+import AudioCall from "../components/calls/AudioCall.js";
+import VideoCall from "../components/calls/VideoCall.js";
+import "../styles/Chat.css";
 
 const Chat = () => {
     return (
         <div className="chat-app">
-            <div className="glass-effect shadow-medium" style={{
-                width: '95vw',
-                maxWidth: '1400px',
-                height: '95vh',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: '20px',
-                overflow: 'hidden',
-                margin: 'auto'
-            }}>
+            <div
+                className="glass-effect shadow-medium"
+                style={{
+                    width: "95vw",
+                    maxWidth: "1400px",
+                    height: "95vh",
+                    display: "flex",
+                    flexDirection: "column",
+                    borderRadius: "20px",
+                    overflow: "hidden",
+                    margin: "auto",
+                }}
+            >
                 <Navbar />
-                <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
                     <Sidebar />
                     <MessageContainer />
                 </div>
             </div>
-            
-            {/* Audio Call Component - This was missing! */}
+
+            {/* Audio Call UI */}
             <AudioCall />
+
+            {/* ⭐ NEW – Video Call UI */}
+            <VideoCall />
         </div>
     );
 };
