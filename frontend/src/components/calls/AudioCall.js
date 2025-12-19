@@ -4,7 +4,7 @@ import useConversation from "../../zustand/useConversation";
 import './Call.css';
 
 const AudioCall = () => {
-    const { incomingCall, acceptCall, endCall, onCallWith, isCallConnected, callStartTime, activeCallUserInfo, isMuted, toggleMute } = useSocketContext();
+    const { incomingCall, acceptCall, endCall, onCallWith, isCallConnected, callStartTime, activeCallUserInfo, isMuted, toggleMute, callType } = useSocketContext();
     const { selectedConversation } = useConversation(); // Use selectedConversation instead
     const [callDuration, setCallDuration] = useState(0);
 
@@ -32,6 +32,10 @@ const AudioCall = () => {
         }
         return () => clearInterval(interval);
     }, [onCallWith, callStartTime]); // Watch call state and synchronized start time
+
+    // ⭐ Don't render AudioCall for video calls
+    if (callType === "video") return null;
+    if (incomingCall?.callType === "video") return null;
 
     // Format call duration
     const formatDuration = (seconds) => {

@@ -169,9 +169,8 @@ const VideoCall = () => {
 
                     <div className="call-controls">
                         <button
-                            className={`call-control-btn mute-btn ${
-                                isMuted ? "muted" : ""
-                            }`}
+                            className={`call-control-btn mute-btn ${isMuted ? "muted" : ""
+                                }`}
                             onClick={toggleMute}
                             title={isMuted ? "Unmute" : "Mute"}
                         >
