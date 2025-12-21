@@ -41,17 +41,26 @@ const __dirname = path.dirname(__filename);
 // 6️⃣ Port
 // ------------------------------
 const PORT = process.env.PORT || 5000;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// ------------------------------
+// 🔴 6.1 Trust proxy (Render uses HTTPS behind proxy)
+// ------------------------------
+if (IS_PROD) {
+  app.set('trust proxy', 1);
+}
 
 // ------------------------------
 // 7️⃣ CORS
 // ------------------------------
+const CLIENT_URLS = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
 app.use(
-    cors({
-        origin: process.env.CLIENT_URL,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-    })
+  cors({
+    origin: CLIENT_URLS,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
 );
 
 // ------------------------------
@@ -62,16 +71,17 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 app.use(
-    session({
-        secret: process.env.SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 24 * 60 * 60 * 1000, // 1 day
-        },
-    })
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: IS_PROD,       // HTTPS only in production
+      sameSite: IS_PROD ? 'none' : 'lax',   // cross-site in prod, dev-friendly locally
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
+  })
 );
 
 app.use(passport.initialize());
@@ -84,26 +94,17 @@ import fs from 'fs';
 
 // AUDIO folder
 const audioDir = path.join(__dirname, 'uploads', 'audio');
-if (!fs.existsSync(audioDir)) {
-    fs.mkdirSync(audioDir, { recursive: true });
-    console.log("📁 Created uploads/audio directory");
-}
+if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
 
-// IMAGES folder (⭐ NEW for CAMERA)
+// IMAGES folder
 const imagesDir = path.join(__dirname, 'uploads', 'images');
-if (!fs.existsSync(imagesDir)) {
-    fs.mkdirSync(imagesDir, { recursive: true });
-    console.log("📁 Created uploads/images directory");
-}
+if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 
-// GENERAL FILES folder (pdf, docs, videos)
+// GENERAL FILES folder
 const otherFilesDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(otherFilesDir)) {
-    fs.mkdirSync(otherFilesDir, { recursive: true });
-    console.log("📁 Created uploads directory");
-}
+if (!fs.existsSync(otherFilesDir)) fs.mkdirSync(otherFilesDir, { recursive: true });
 
-// Serve all uploads
+// Serve uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ------------------------------
@@ -117,13 +118,13 @@ app.use('/api/messages', messageRoutes);
 // 1️⃣1️⃣ Test route
 // ------------------------------
 app.get('/', (req, res) => {
-    res.send('Server + Socket.IO running successfully');
+  res.send('Server + Socket.IO running successfully');
 });
 
 // ------------------------------
 // 1️⃣2️⃣ Start server
 // ------------------------------
 server.listen(PORT, () => {
-    connectToDB();
-    console.log(`🚀 Server running on port ${PORT}`);
+  connectToDB();
+  console.log(`🚀 Server running on port ${PORT}`);
 });

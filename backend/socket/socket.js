@@ -1,4 +1,3 @@
-// backend/socket/socket.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -10,9 +9,11 @@ import User from '../models/User.js';
 
 const app = express();
 const server = http.createServer(app);
+const IS_PROD = process.env.NODE_ENV === 'production';
+const CLIENT_URLS = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
 const io = new Server(server, {
     cors: {
-        origin: process.env.CLIENT_URL,
+        origin: CLIENT_URLS,
         methods: ["GET", "POST"]
     }
 });
@@ -24,7 +25,7 @@ export const getReceiverSocketId = (receiverId) => {
     return userSocketMap[receiverId];
 };
 
-// 🟦 MESSAGE STATUS HANDLING
+// MESSAGE STATUS HANDLING
 export const handleMessageStatus = async (message) => {
     try {
         const receiverSocketId = getReceiverSocketId(message.receiverId.toString());
@@ -56,7 +57,7 @@ export const handleMessageStatus = async (message) => {
     }
 };
 
-// 🟦 SOCKET CONNECTION
+// SOCKET CONNECTION
 io.on('connection', (socket) => {
     console.log("A user connected:", socket.id);
 
@@ -90,7 +91,7 @@ io.on('connection', (socket) => {
     });
 
     // -------------------------------------------------------------
-    // 🔥 AUDIO + VIDEO CALL FEATURE (WebRTC SIGNALING)
+    //  AUDIO + VIDEO CALL FEATURE (WebRTC SIGNALING)
     // -------------------------------------------------------------
 
     // Caller → Offer
@@ -110,7 +111,7 @@ io.on('connection', (socket) => {
                     from: userId,
                     callerInfo,
                     offer,
-                    callType, // ⭐ tell receiver it’s audio or video
+                    callType, //  tell receiver it’s audio or video
                 });
             } catch (error) {
                 io.to(receiverSocketId).emit("incoming-call", {
@@ -155,7 +156,7 @@ io.on('connection', (socket) => {
     });
 
     // -------------------------------------------------------------
-    // 🔥 NEW MESSAGE DELIVERED / SEEN HANDLING
+    //  NEW MESSAGE DELIVERED / SEEN HANDLING
     // -------------------------------------------------------------
 
     socket.on("messageDelivered", async (messageId) => {
@@ -198,7 +199,7 @@ io.on('connection', (socket) => {
     });
 
     // -------------------------------------------------------------
-    // 🔥 DISCONNECT EVENT
+    //  DISCONNECT EVENT
     // -------------------------------------------------------------
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
