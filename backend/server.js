@@ -77,8 +77,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: IS_PROD,       // HTTPS only in production
-      sameSite: IS_PROD ? 'none' : 'lax',   // cross-site in prod, dev-friendly locally
+      secure: IS_PROD,
+      sameSite: IS_PROD ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })

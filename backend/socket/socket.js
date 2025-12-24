@@ -9,7 +9,6 @@ import User from '../models/User.js';
 
 const app = express();
 const server = http.createServer(app);
-const IS_PROD = process.env.NODE_ENV === 'production';
 const CLIENT_URLS = (process.env.CLIENT_URL || 'http://localhost:3000').split(',');
 const io = new Server(server, {
     cors: {
